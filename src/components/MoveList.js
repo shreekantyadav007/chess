@@ -1,6 +1,8 @@
 import React from "react";
 
 function MoveList({ moves }) {
+  console.log(moves);
+  
   return (
     <div className="move-list">
       <h3>Move List</h3>

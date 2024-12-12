@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
 import ChessBoard from "./components/ChessBoard";
+import Timer from "./components/Timer";
+import MoveList from "./components/MoveList";
 import { isLegalMove, getNotation } from "./utils/chessLogic";
 import "./App.css";
 
@@ -20,38 +22,38 @@ const initialBoard = [
   "p",
   "p",
   "p",
-  null,
-  null,
-  null,
-  null,
-  null,
-  null,
-  null,
-  null,
-  null,
-  null,
-  null,
-  null,
-  null,
-  null,
-  null,
-  null,
-  null,
-  null,
-  null,
-  null,
-  null,
-  null,
-  null,
-  null,
-  null,
-  null,
-  null,
-  null,
-  null,
-  null,
-  null,
-  null,
+  "",
+  "",
+  "",
+  "",
+  "",
+  "",
+  "",
+  "",
+  "",
+  "",
+  "",
+  "",
+  "",
+  "",
+  "",
+  "",
+  "",
+  "",
+  "",
+  "",
+  "",
+  "",
+  "",
+  "",
+  "",
+  "",
+  "",
+  "",
+  "",
+  "",
+  "",
+  "",
   "P",
   "P",
   "P",
@@ -113,6 +115,7 @@ function App() {
           ...moveList,
           getNotation(selectedSquare, index, board[selectedSquare]),
         ]);
+
         setTurn(turn === "white" ? "black" : "white");
         setActiveTimer(turn === "white" ? "black" : "white");
         setSelectedSquare(null);
@@ -130,19 +133,12 @@ function App() {
 
   return (
     <div className="app">
-      <h1>React Chess Game</h1>
+      <h1 style={{ textAlign: "center" }}>React Chess Game</h1>
       <div className="chess-container">
         <ChessBoard board={board} onMove={handleSquareClick} />
         <div className="info-panel">
-          <h2>Timers</h2>
-          <p>White: {formatTime(timers.white)}</p>
-          <p>Black: {formatTime(timers.black)}</p>
-          <h2>Move List</h2>
-          <ul>
-            {moveList.map((move, index) => (
-              <li key={index}>{move}</li>
-            ))}
-          </ul>
+          <Timer timers={timers} />
+          {/* <MoveList moves={moveList} /> */}
         </div>
       </div>
     </div>

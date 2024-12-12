@@ -1,223 +1,243 @@
-const isWhitePiece = (piece) => piece === piece.toUpperCase();
-const isBlackPiece = (piece) => piece === piece.toLowerCase();
-const isOpponentPiece = (piece, turn) =>
-  (turn === "white" && isBlackPiece(piece)) ||
-  (turn === "black" && isWhitePiece(piece));
+// utils/chessLogic.js
 
-const getPieceMoves = (board, position, turn) => {
-  const piece = board[position];
-  if (!piece) return [];
+export const PIECE_SYMBOLS = {
+  K: "♔", // White King
+  Q: "♕", // White Queen
+  R: "♖", // White Rook
+  B: "♗", // White Bishop
+  N: "♘", // White Knight
+  P: "♙", // White Pawn
+  k: "♚", // Black King
+  q: "♛", // Black Queen
+  r: "♜", // Black Rook
+  b: "♝", // Black Bishop
+  n: "♞", // Black Knight
+  p: "♟", // Black Pawn
+};
 
-  const isWhite = isWhitePiece(piece);
+// Check if a piece belongs to white
+export const isWhitePiece = (piece) => {
+  if (!piece) return false; // Handle null/undefined
+  return piece === piece.toUpperCase();
+};
+
+// Check if a piece belongs to black
+export const isBlackPiece = (piece) => {
+  if (!piece) return false; // Handle null/undefined
+  return piece === piece.toLowerCase();
+};
+
+// Check if a piece is an opponent's piece
+export const isOpponentPiece = (piece, currentPlayerIsWhite) => {
+  if (!piece) return false; // Handle null/undefined
+  return currentPlayerIsWhite ? isBlackPiece(piece) : isWhitePiece(piece);
+};
+
+export const getPieceMoves = (board, fromIndex, currentPlayerIsWhite) => {
+  const piece = board[fromIndex];
+  if (!piece) return []; // Handle empty square
+
   const moves = [];
-  const row = Math.floor(position / 8);
-  const col = position % 8;
+  const row = Math.floor(fromIndex / 8);
+  const col = fromIndex % 8;
+
+  if (isWhitePiece(piece) !== currentPlayerIsWhite) return []; // Ensure the correct player moves
 
   // Pawn moves
   if (piece.toLowerCase() === "p") {
-    const direction = isWhite ? -1 : 1;
-    const startRow = isWhite ? 6 : 1;
+    const direction = currentPlayerIsWhite ? -1 : 1;
+    const forwardIndex = fromIndex + direction * 8;
 
-    // Forward move
-    const forwardOne = position + 8 * direction;
-    if (!board[forwardOne]) moves.push(forwardOne);
-
-    // Double move from starting position
-    const forwardTwo = position + 16 * direction;
-    if (row === startRow && !board[forwardOne] && !board[forwardTwo]) {
-      moves.push(forwardTwo);
+    // Move forward
+    if (board[forwardIndex] === "") {
+      moves.push(forwardIndex);
     }
 
-    // Captures
-    const captures = [
-      position + 8 * direction - 1,
-      position + 8 * direction + 1,
-    ];
-    captures.forEach((target) => {
-      if (board[target] && isOpponentPiece(board[target], turn))
-        moves.push(target);
-    });
+    // Capture diagonally
+    const captureLeft = fromIndex + direction * 8 - 1;
+    const captureRight = fromIndex + direction * 8 + 1;
+    if (col > 0 && isOpponentPiece(board[captureLeft], currentPlayerIsWhite)) {
+      moves.push(captureLeft);
+    }
+    if (col < 7 && isOpponentPiece(board[captureRight], currentPlayerIsWhite)) {
+      moves.push(captureRight);
+    }
+  }
+
+  // Rook moves
+  if (piece.toLowerCase() === "r") {
+    for (let i = 1; i < 8; i++) {
+      const forward = fromIndex - i * 8;
+      const backward = fromIndex + i * 8;
+      const left = fromIndex - i;
+      const right = fromIndex + i;
+
+      if (forward >= 0 && board[forward] === "") moves.push(forward);
+      if (backward < 64 && board[backward] === "") moves.push(backward);
+      if (col - i >= 0 && board[left] === "") moves.push(left);
+      if (col + i < 8 && board[right] === "") moves.push(right);
+    }
   }
 
   // Knight moves
   if (piece.toLowerCase() === "n") {
     const knightMoves = [
-      [row + 2, col + 1],
-      [row + 2, col - 1],
-      [row - 2, col + 1],
-      [row - 2, col - 1],
-      [row + 1, col + 2],
-      [row + 1, col - 2],
-      [row - 1, col + 2],
-      [row - 1, col - 2],
+      [-2, -1],
+      [-2, 1],
+      [-1, -2],
+      [-1, 2],
+      [1, -2],
+      [1, 2],
+      [2, -1],
+      [2, 1],
     ];
-    knightMoves.forEach(([r, c]) => {
-      const target = r * 8 + c;
-      if (
-        r >= 0 &&
-        r < 8 &&
-        c >= 0 &&
-        c < 8 &&
-        (!board[target] || isOpponentPiece(board[target], turn))
-      ) {
-        moves.push(target);
+
+    for (const move of knightMoves) {
+      const knightIndex = fromIndex + move[0] * 8 + move[1];
+      if (knightIndex >= 0 && knightIndex < 64 && (board[knightIndex] === "" || isOpponentPiece(board[knightIndex], currentPlayerIsWhite))) {
+        moves.push(knightIndex);
       }
-    });
+    }
+  }
+
+  // Bishop moves
+  if (piece.toLowerCase() === "b") {
+    const bishopMoves = [
+      [-1, -1],
+      [-1, 1],
+      [1, -1],
+      [1, 1],
+    ];
+
+    for (const move of bishopMoves) {
+      let bishopIndex = fromIndex + move[0] * 8 + move[1];
+      while (bishopIndex >= 0 && bishopIndex < 64) {
+        if (board[bishopIndex] === "") {
+          moves.push(bishopIndex);
+          bishopIndex += move[0] * 8 + move[1];
+        } else if (isOpponentPiece(board[bishopIndex], currentPlayerIsWhite)) {
+          moves.push(bishopIndex);
+          break;
+        } else {
+          break;
+        }
+      }
+    }
+  }
+
+  // Queen moves
+  if (piece.toLowerCase() === "q") {
+    const queenMoves = [
+      [-1, -1],
+      [-1, 0],
+      [-1, 1],
+      [0, -1],
+      [0, 1],
+      [1, -1],
+      [1, 0],
+      [1, 1],
+    ];
+
+    for (const move of queenMoves) {
+      let queenIndex = fromIndex + move[0] * 8 + move[1];
+      while (queenIndex >= 0 && queenIndex < 64) {
+        if (board[queenIndex] === "") {
+          moves.push(queenIndex);
+          queenIndex += move[0] * 8 + move[1];
+        } else if (isOpponentPiece(board[queenIndex], currentPlayerIsWhite)) {
+          moves.push(queenIndex);
+          break;
+        } else {
+          break;
+        }
+      }
+    }
   }
 
   // King moves
   if (piece.toLowerCase() === "k") {
     const kingMoves = [
-      [row + 1, col],
-      [row - 1, col],
-      [row, col + 1],
-      [row, col - 1],
-      [row + 1, col + 1],
-      [row + 1, col - 1],
-      [row - 1, col + 1],
-      [row - 1, col - 1],
+      [-1, -1],
+      [-1, 0],
+      [-1, 1],
+      [0, -1],
+      [0, 1],
+      [1, -1],
+      [1, 0],
+      [1, 1],
     ];
-    kingMoves.forEach(([r, c]) => {
-      const target = r * 8 + c;
-      if (
-        r >= 0 &&
-        r < 8 &&
-        c >= 0 &&
-        c < 8 &&
-        (!board[target] || isOpponentPiece(board[target], turn))
-      ) {
-        moves.push(target);
-      }
-    });
-  }
 
-  // Rook, bishop, queen moves (handled with helper)
-  if (
-    piece.toLowerCase() === "r" ||
-    piece.toLowerCase() === "b" ||
-    piece.toLowerCase() === "q"
-  ) {
-    moves.push(...getSlidingMoves(board, position, turn, piece.toLowerCase()));
+    for (const move of kingMoves) {
+      const kingIndex = fromIndex + move[0] * 8 + move[1];
+      if (kingIndex >= 0 && kingIndex < 64 && (board[kingIndex] === "" || isOpponentPiece(board[kingIndex], currentPlayerIsWhite))) {
+        moves.push(kingIndex);
+      }
+    }
   }
 
   return moves;
 };
 
-const getSlidingMoves = (board, position, turn, piece) => {
-  const moves = [];
-  const directions = {
-    r: [
-      [0, 1],
-      [0, -1],
-      [1, 0],
-      [-1, 0],
-    ], // Rook: straight lines
-    b: [
-      [1, 1],
-      [1, -1],
-      [-1, 1],
-      [-1, -1],
-    ], // Bishop: diagonals
-    q: [
-      [0, 1],
-      [0, -1],
-      [1, 0],
-      [-1, 0],
-      [1, 1],
-      [1, -1],
-      [-1, 1],
-      [-1, -1],
-    ], // Queen: rook + bishop
-  }[piece];
+export const isLegalMove = (
+  board,
+  fromIndex,
+  toIndex,
+  currentPlayerIsWhite
+) => {
+  if (fromIndex === toIndex) return false; // Can't move to the same square
 
-  const row = Math.floor(position / 8);
-  const col = position % 8;
-
-  directions.forEach(([dr, dc]) => {
-    for (let step = 1; step < 8; step++) {
-      const r = row + dr * step;
-      const c = col + dc * step;
-      if (r < 0 || r >= 8 || c < 0 || c >= 8) break;
-
-      const target = r * 8 + c;
-      if (board[target]) {
-        if (isOpponentPiece(board[target], turn)) moves.push(target);
-        break;
-      }
-      moves.push(target);
-    }
-  });
-
-  return moves;
-};
-
-const isKingInCheck = (board, turn) => {
-  const kingPosition = board.findIndex(
-    (piece) =>
-      piece &&
-      piece.toLowerCase() === "k" &&
-      ((turn === "white" && isWhitePiece(piece)) ||
-        (turn === "black" && isBlackPiece(piece)))
-  );
-
-  return board.some((piece, index) => {
-    if (
-      !piece ||
-      (turn === "white" && isWhitePiece(piece)) ||
-      (turn === "black" && isBlackPiece(piece))
-    ) {
-      return false;
-    }
-
-    return getPieceMoves(
-      board,
-      index,
-      turn === "white" ? "black" : "white"
-    ).includes(kingPosition);
-  });
-};
-
-const isCheckmate = (board, turn) => {
-  return !board.some((piece, index) => {
-    if (
-      !piece ||
-      (turn === "white" && isBlackPiece(piece)) ||
-      (turn === "black" && isWhitePiece(piece))
-    ) {
-      return false;
-    }
-
-    const moves = getPieceMoves(board, index, turn);
-    return moves.some((move) => {
-      const newBoard = [...board];
-      newBoard[move] = newBoard[index];
-      newBoard[index] = null;
-
-      return !isKingInCheck(newBoard, turn);
-    });
-  });
-};
-
-export const isLegalMove = (board, from, to, turn) => {
-  const piece = board[from];
+  const piece = board[fromIndex];
+  if (!piece) return false; // No piece on source square
+  if (isWhitePiece(piece) !== currentPlayerIsWhite) return false; // Ensure turn validity
   if (
-    !piece ||
-    (turn === "white" && isBlackPiece(piece)) ||
-    (turn === "black" && isWhitePiece(piece))
+    board[toIndex] !== "" &&
+    isWhitePiece(board[toIndex]) === currentPlayerIsWhite
   ) {
-    return false;
+    return false; // Can't capture own piece
   }
 
-  const moves = getPieceMoves(board, from, turn);
-  const legalMoves = moves.filter((move) => {
-    const newBoard = [...board];
-    newBoard[move] = newBoard[from];
-    newBoard[from] = null;
+  const moves = getPieceMoves(board, fromIndex, currentPlayerIsWhite);
+  return moves.includes(toIndex);
+};
 
-    return !isKingInCheck(newBoard, turn);
-  });
+// Check if a king is in check
+export const isKingInCheck = (board, currentPlayerIsWhite) => {
+  const kingSymbol = currentPlayerIsWhite ? "K" : "k";
+  const kingPosition = board.indexOf(kingSymbol);
 
-  return legalMoves.includes(to);
+  if (kingPosition === -1) return false; // No king found (edge case)
+
+  for (let i = 0; i < board.length; i++) {
+    if (isOpponentPiece(board[i], currentPlayerIsWhite)) {
+      const opponentMoves = getPieceMoves(board, i, !currentPlayerIsWhite);
+      if (opponentMoves.includes(kingPosition)) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+};
+
+// Check if it's checkmate
+export const isCheckmate = (board, currentPlayerIsWhite) => {
+  if (!isKingInCheck(board, currentPlayerIsWhite)) return false;
+
+  for (let fromIndex = 0; fromIndex < board.length; fromIndex++) {
+    if (isWhitePiece(board[fromIndex]) === currentPlayerIsWhite) {
+      const moves = getPieceMoves(board, fromIndex, currentPlayerIsWhite);
+      for (let toIndex of moves) {
+        const testBoard = [...board];
+        testBoard[toIndex] = testBoard[fromIndex];
+        testBoard[fromIndex] = "";
+        if (!isKingInCheck(testBoard, currentPlayerIsWhite)) {
+          return false; // If any move removes check, it's not checkmate
+        }
+      }
+    }
+  }
+
+  return true; // No legal moves that remove check
 };
 
 export const getNotation = (from, to, piece) => {
